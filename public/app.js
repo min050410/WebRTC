@@ -38,6 +38,34 @@ async function createRoom() {
   registerPeerConnectionListeners();
 
   // Add code for creating a room here
+  // RTC Session Description - 호출자의 오퍼를 나타냄
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+
+  const roomWithOffer = {
+      offer: {
+          type: offer.type,
+          sdp: offer.sdp
+      }
+  }
+  const roomRef = await db.collection('rooms').add(roomWithOffer);
+  const roomId = roomRef.id;
+  document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`
+  
+  // 데이터베이스 변경사항 수신 대기
+  roomRef.onSnapshot(async snapshot => {
+    console.log('Got updated room:', snapshot.data());
+    const data = snapshot.data();
+    // 피호출자의 답변이 추가된 시점 감지
+    if (!peerConnection.currentRemoteDescription && data.answer) {
+        console.log('Set remote description: ', data.answer);
+        const answer = new RTCSessionDescription(data.answer)
+        await peerConnection.setRemoteDescription(answer);
+    }
+});
+
+
+  
   
   // Code for creating room above
   
