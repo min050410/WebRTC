@@ -30,6 +30,8 @@ function init() {
 async function createRoom() {
   document.querySelector('#createBtn').disabled = true;
   document.querySelector('#joinBtn').disabled = true;
+
+  // database cloud 
   const db = firebase.firestore();
 
   console.log('Create PeerConnection with configuration: ', configuration);
@@ -40,6 +42,7 @@ async function createRoom() {
   // Add code for creating a room here
   // RTC Session Description - 호출자의 오퍼를 나타냄
   const offer = await peerConnection.createOffer();
+  // RTCSessionDescription 로컬 설명으로 기록, Clound Firestore의 새 채팅방 객체에 저장
   await peerConnection.setLocalDescription(offer);
 
   const roomWithOffer = {
@@ -63,6 +66,8 @@ async function createRoom() {
       await peerConnection.setRemoteDescription(answer);
     }
 
+
+    // 채팅방에 참여 중
     const offer = roomSnapshot.data().offer;
     await peerConnection.setRemoteDescription(offer);
     const answer = await peerConnection.createAnswer();
@@ -74,11 +79,13 @@ async function createRoom() {
         sdp: answer.sdp
       }
     }
+    // db 업데이트
     await roomRef.update(roomWithAnswer);
-
+    // 호출자와 피호출자 간의 RTCSessionDescription 객체 교환 완료.
   });
 
-  // ICE 후보 수집
+  // ICE 후보 교환
+  // ICE 후보 수신 대기 -> 데이터베이스 컬렉션에 추가
   async function collectIceCandidates(roomRef, peerConnection,
     localName, remoteName) {
     const candidatesCollection = roomRef.collection(localName);
